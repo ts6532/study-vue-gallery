@@ -37,6 +37,26 @@ const currentSlideIndex = ref(initialIndex);
 
 const currentItem = computed(() => items[currentSlideIndex.value]);
 
+let observer: IntersectionObserver;
+
+let isFirstCall = true;
+
+const callback: IntersectionObserverCallback = (entries) => {
+  entries.forEach((entry) => {
+    if (entry.intersectionRatio === 1) {
+      if (isFirstCall) {
+        isFirstCall = false
+        return
+      } else {
+        currentSlideIndex.value = Number(
+          (entry.target as HTMLElement).dataset.item
+        );
+        emit("change", currentItem.value);
+      }
+    }
+  });
+};
+
 onMounted(() => {
   if (initialIndex) {
     scrollTo({
@@ -49,18 +69,23 @@ onMounted(() => {
   }
 
   if (galleryContainer.value) {
-    galleryContainer.value.addEventListener("scrollsnapchange", onSnapChange);
+    const options = {
+      root: galleryContainer.value,
+      rootMargin: "100% 0% 100% 0%",
+      threshold: [1],
+    };
+
+    observer = new IntersectionObserver(callback, options);
+
+    for (const target of galleryContainer.value.children) {
+      observer.observe(target);
+    }
   }
 });
 
-onUnmounted(() =>
-  galleryContainer.value?.removeEventListener("scrollsnapchange", onSnapChange)
-);
-
-const onSnapChange = (event: any) => {
-  currentSlideIndex.value = Number(event.snapTargetInline.dataset.item);
-  emit("change", currentItem.value);
-};
+onUnmounted(() => {
+  observer.disconnect()
+});
 
 type ScrollToOptions = {
   slideIndex: number;
@@ -72,17 +97,15 @@ const scrollTo = ({ slideIndex, scrollOpts }: ScrollToOptions) => {
     block: "nearest",
   };
 
-  if (scrollOpts) {
-    scrollOptions = { ...scrollOptions, ...scrollOpts };
-  }
+  scrollOptions = { ...scrollOptions, ...scrollOpts };
 
+  console.log("scrollTo index", slideIndex);
   galleryContainer.value?.children[slideIndex].scrollIntoView(scrollOptions);
 };
 
-
 type ArrowClickOptions = {
-  direction: "left" | "right"
-}
+  direction: "left" | "right";
+};
 const onArrowClick = ({ direction }: ArrowClickOptions) => {
   switch (direction) {
     case "left":
@@ -205,7 +228,7 @@ const onArrowClick = ({ direction }: ArrowClickOptions) => {
     .gallery-item {
       width: 100%;
       height: 100%;
-      scroll-snap-align: center;
+      scroll-snap-align: start;
       scroll-snap-stop: always;
       flex-shrink: 0;
 
