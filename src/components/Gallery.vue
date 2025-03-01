@@ -79,7 +79,11 @@ const scrollTo = ({ slideIndex, scrollOpts }: ScrollToOptions) => {
   galleryContainer.value?.children[slideIndex].scrollIntoView(scrollOptions);
 };
 
-const onArrowClick = ({ direction }: { direction: "left" | "right" }) => {
+
+type ArrowClickOptions = {
+  direction: "left" | "right"
+}
+const onArrowClick = ({ direction }: ArrowClickOptions) => {
   switch (direction) {
     case "left":
       if (currentSlideIndex.value > 0) {
