@@ -1,25 +1,35 @@
-<script setup lang="ts" generic="ItemType extends { id: number }">
+<script setup lang="ts" generic="ItemType extends Record<string, any>">
 import { computed, onMounted, onUnmounted, ref, useTemplateRef } from "vue";
+
+interface GalleryOptions {
+  height: string;
+  width: string;
+}
+
+const defaultOptions = {
+  height: "100%",
+  width: "100%",
+};
 
 interface GalleryProps {
   items?: ItemType[];
+  keyName: keyof ItemType;
   initialIndex?: number;
-  height?: string;
-  width?: string;
-  itemsOnSlide?: number;
+  options: Partial<GalleryOptions>;
 }
 
 const {
   items = [],
   initialIndex = 0,
-  height = "100%",
-  width = "100%",
-  itemsOnSlide = 1,
+  keyName,
+  options,
 } = defineProps<GalleryProps>();
 
 const emit = defineEmits<{
   change: [currentItem: ItemType];
 }>();
+
+const { width, height } = { ...defaultOptions, ...options };
 
 const galleryContainer = useTemplateRef("gallery-container");
 
@@ -73,20 +83,15 @@ const onArrowClick = ({ direction }: { direction: "left" | "right" }) => {
   switch (direction) {
     case "left":
       if (currentSlideIndex.value > 0) {
-        const slideIndex =
-          itemsOnSlide > 1
-            ? currentSlideIndex.value - 1 - itemsOnSlide
-            : currentSlideIndex.value - 1;
+        const slideIndex = currentSlideIndex.value - 1;
 
         scrollTo({ slideIndex });
       }
       break;
+
     case "right":
       if (currentSlideIndex.value < items.length - 1) {
-        const slideIndex =
-          itemsOnSlide > 1
-            ? currentSlideIndex.value + 1 + itemsOnSlide
-            : currentSlideIndex.value + 1;
+        const slideIndex = currentSlideIndex.value + 1;
 
         scrollTo({ slideIndex });
       }
@@ -101,19 +106,24 @@ const onArrowClick = ({ direction }: { direction: "left" | "right" }) => {
       class="gallery-nav gallery-nav--left"
       @click="onArrowClick({ direction: 'left' })"
     >
-      <slot name="arrow-left">Left</slot>
+      <slot name="arrow-left"><i class="arrow arrow--left" /></slot>
     </div>
+
     <div
       class="gallery-nav gallery-nav--right"
       @click="onArrowClick({ direction: 'right' })"
     >
-      <slot name="arrow-right">Right</slot>
+      <slot name="arrow-right"><i class="arrow arrow--right" /></slot>
     </div>
 
     <div class="gallery-container" ref="gallery-container" id="scroll-box">
-      <template v-for="(item, idx) in items" :key="item.id">
-        <div class="gallery-item" :data-item="idx">
-          <slot :item />
+      <template v-for="(item, idx) in items" :key="item[keyName]">
+        <div class="gallery-item" :data-item="idx" :id="item[keyName]">
+          <slot :item>
+            <div class="gallery-item__image">
+              <img :src="item.path" />
+            </div>
+          </slot>
         </div>
       </template>
     </div>
@@ -125,44 +135,84 @@ const onArrowClick = ({ direction }: { direction: "left" | "right" }) => {
   position: relative;
   height: v-bind(height);
   width: v-bind(width);
-}
 
-.gallery-nav {
-  display: none;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  .gallery-nav {
+    display: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
 
-  &.gallery-nav--left {
-    left: 10px;
+    border-radius: 100%;
+    width: 30px;
+    height: 30px;
+    background-color: black;
+    color: white;
+
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    &:active {
+      transform: translate(1px, calc(-50% + 1px));
+    }
+
+    &.gallery-nav--left {
+      left: 10px;
+    }
+
+    &.gallery-nav--right {
+      right: 10px;
+    }
+
+    @media only screen and (min-width: 480px) {
+      display: flex;
+    }
+
+    .arrow {
+      border: solid white;
+      border-width: 0 3px 3px 0;
+      display: inline-block;
+      padding: 3px;
+
+      &.arrow--right {
+        transform: rotate(-45deg);
+        margin-left: -3px;
+      }
+
+      &.arrow--left {
+        transform: rotate(135deg);
+        margin-left: 3px;
+      }
+    }
   }
 
-  &.gallery-nav--right {
-    right: 10px;
+  .gallery-container {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x mandatory;
+    scroll-snap-stop: always;
+    scroll-behavior: smooth;
+    gap: 0px;
+    z-index: 1;
+    height: v-bind(height);
+    width: v-bind(width);
+
+    .gallery-item {
+      width: 100%;
+      height: 100%;
+      scroll-snap-align: center;
+      flex-shrink: 0;
+
+      .gallery-item__image {
+        height: 100%;
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+      }
+    }
   }
-
-  @media only screen and (min-width: 480px) {
-    display: block;
-  }
-}
-
-.gallery-container {
-  display: flex;
-  overflow-x: auto;
-  scrollbar-width: none;
-  scroll-snap-type: x mandatory;
-  scroll-snap-stop: always;
-  scroll-behavior: smooth;
-  gap: 0px;
-  z-index: 1;
-  height: v-bind(height);
-  width: v-bind(width);
-}
-
-.gallery-item {
-  width: calc(100% / v-bind(itemsOnSlide));
-  height: 100%;
-  scroll-snap-align: center;
-  flex-shrink: 0;
 }
 </style>

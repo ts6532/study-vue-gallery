@@ -8,42 +8,51 @@ type Slide = {
 
 const items: Slide[] = [
   {
-    id: 1,
+    id: 1.2,
     path: "https://cdn.dummyjson.com/recipe-images/1.webp",
   },
   {
-    id: 2,
+    id: 2.2,
     path: "https://cdn.dummyjson.com/recipe-images/2.webp",
   },
   {
-    id: 3,
+    id: 3.3,
     path: "https://cdn.dummyjson.com/recipe-images/3.webp",
   },
   {
-    id: 4,
+    id: 4.1,
     path: "https://cdn.dummyjson.com/recipe-images/4.webp",
+  },
+  {
+    id: 5.4,
+    path: "https://cdn.dummyjson.com/recipe-images/5.webp",
+  },
+  {
+    id: 6.9,
+    path: "https://cdn.dummyjson.com/recipe-images/6.webp",
   },
 ];
 
 const onSlideChange = (slide: Slide) => {
   console.log(slide)
 }
+
+const options = {
+  height: '400px',
+  width: '300px'
+}
 </script>
 
 <template>
   <h1>Gallery page</h1>
-  <Gallery :items height="400px" width="400px" @change="onSlideChange">
-    <template #arrow-left> << </template>
-    <template #arrow-right> >> </template>
-    <template v-slot="{ item }">
-      <div class="image">
-        <img :src="item.path" />
-      </div>
-    </template>
-  </Gallery>
+  <Gallery class="gallery-1" :items :options keyName="id" @change="onSlideChange" />
 </template>
 
 <style>
+.gallery-1 {
+  margin: 0 auto;
+}
+
 .image {
   height: 100%;
    img {
