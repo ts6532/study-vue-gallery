@@ -206,6 +206,7 @@ const onArrowClick = ({ direction }: ArrowClickOptions) => {
       width: 100%;
       height: 100%;
       scroll-snap-align: center;
+      scroll-snap-stop: always;
       flex-shrink: 0;
 
       .gallery-item__image {
