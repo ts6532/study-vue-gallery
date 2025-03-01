@@ -34,31 +34,54 @@ const items: Slide[] = [
 ];
 
 const onSlideChange = (slide: Slide) => {
-  console.log(slide)
-}
+  console.log(slide);
+};
 
 const options = {
-  height: '400px',
-  width: '300px'
-}
+  height: "400px",
+  width: "",
+};
 </script>
 
 <template>
-  <h1>Gallery page</h1>
-  <Gallery class="gallery-1" :items :options keyName="id" @change="onSlideChange" />
+  <div class="container">
+    <div class="page">
+      <div class="page__left-sidebar"></div>
+      <div class="page__main">
+        <h1>Gallery page</h1>
+        <Gallery
+          class="gallery-1"
+          :items
+          :options
+          keyName="id"
+          @change="onSlideChange"
+        />
+      </div>
+    </div>
+  </div>
 </template>
 
 <style>
-.gallery-1 {
+.container {
+  max-width: 1024px;
   margin: 0 auto;
+}
+.page {
+  @media only screen and (min-width: 480px) {
+    display: grid;
+    grid-template-columns: minmax(200px, 300px) 1fr;
+  }
+}
+
+.gallery-1 {
 }
 
 .image {
   height: 100%;
-   img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-   }
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 }
 </style>
