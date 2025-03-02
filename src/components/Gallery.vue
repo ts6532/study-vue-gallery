@@ -1,14 +1,15 @@
 <script setup lang="ts" generic="ItemType extends Record<string, any>">
 import { computed, onMounted, onUnmounted, ref, useTemplateRef } from "vue";
 
-interface GalleryOptions {
-  height: string;
-  width: string;
+export interface GalleryOptions {
+  height?: string;
+  width?: string;
+  slidesGap?: string;
 }
-
-const defaultOptions = {
+const defaultOptions: GalleryOptions = {
   height: "100%",
   width: "100%",
+  slidesGap: "0px",
 };
 
 interface GalleryProps {
@@ -27,43 +28,59 @@ const {
 
 const emit = defineEmits<{
   change: [currentItem: ItemType];
+  lastElement: [];
+  firstElement: [];
 }>();
 
-const { width, height } = { ...defaultOptions, ...options };
+const { width, height, slidesGap } = { ...defaultOptions, ...options };
 
 const galleryContainer = useTemplateRef("gallery-container");
 
+const calculatedItems = computed(() => {
+  return items;
+});
+
 const currentSlideIndex = ref(initialIndex);
 
-const currentItem = computed(() => items[currentSlideIndex.value]);
+const currentSlide = computed(
+  () => calculatedItems.value[currentSlideIndex.value]
+);
+
+const isFirstElement = computed(() => currentSlideIndex.value === 0);
+
+const isLastElement = computed(() => currentSlideIndex.value === items.length - 1);
 
 let observer: IntersectionObserver;
 
 let isFirstCall = true;
 
 const callback: IntersectionObserverCallback = (entries) => {
-  entries.forEach((entry) => {
-    if (entry.intersectionRatio === 1) {
+  entries.forEach(({ target, isIntersecting, intersectionRatio }) => {
+    if (!isIntersecting) return;
+
+    if (intersectionRatio >= 1) {
       if (isFirstCall) {
-        isFirstCall = false
-        return
+        isFirstCall = false;
+        return;
       } else {
-        currentSlideIndex.value = Number(
-          (entry.target as HTMLElement).dataset.item
-        );
-        emit("change", currentItem.value);
+        currentSlideIndex.value = Number((target as HTMLElement).dataset.item);
+
+        emit("change", currentSlide.value);
+
+        if (isFirstElement.value) emit("firstElement");
+
+        if (isLastElement.value) emit("lastElement");
       }
     }
   });
 };
 
 onMounted(() => {
-  if (initialIndex) {
+  if (currentSlideIndex.value) {
     scrollTo({
-      slideIndex: initialIndex,
+      slideIndex: currentSlideIndex.value,
       scrollOpts: {
         behavior: "instant",
-        block: "nearest",
       },
     });
   }
@@ -71,8 +88,8 @@ onMounted(() => {
   if (galleryContainer.value) {
     const options = {
       root: galleryContainer.value,
-      rootMargin: "100% 0% 100% 0%",
-      threshold: [1],
+      rootMargin: "0px 5px 0px 5px",
+      threshold: 1,
     };
 
     observer = new IntersectionObserver(callback, options);
@@ -84,7 +101,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  observer.disconnect()
+  observer.disconnect();
 });
 
 type ScrollToOptions = {
@@ -92,60 +109,52 @@ type ScrollToOptions = {
   scrollOpts?: ScrollIntoViewOptions;
 };
 const scrollTo = ({ slideIndex, scrollOpts }: ScrollToOptions) => {
-  let scrollOptions: ScrollIntoViewOptions = {
+  let defaultScrollOptions: ScrollIntoViewOptions = {
     behavior: "smooth",
-    block: "nearest",
   };
 
-  scrollOptions = { ...scrollOptions, ...scrollOpts };
+  const slide = galleryContainer.value?.children[slideIndex] as HTMLElement;
 
-  console.log("scrollTo index", slideIndex);
-  galleryContainer.value?.children[slideIndex].scrollIntoView(scrollOptions);
+  galleryContainer.value?.scrollTo({
+    left: slide.offsetLeft,
+    ...defaultScrollOptions,
+    ...scrollOpts,
+  });
 };
 
-type ArrowClickOptions = {
-  direction: "left" | "right";
-};
-const onArrowClick = ({ direction }: ArrowClickOptions) => {
-  switch (direction) {
-    case "left":
-      if (currentSlideIndex.value > 0) {
-        const slideIndex = currentSlideIndex.value - 1;
+const onArrowClick = async (index: number) => {
+  const slideIndex = currentSlideIndex.value + index;
 
-        scrollTo({ slideIndex });
-      }
-      break;
+  if (!calculatedItems.value[slideIndex]) return;
 
-    case "right":
-      if (currentSlideIndex.value < items.length - 1) {
-        const slideIndex = currentSlideIndex.value + 1;
-
-        scrollTo({ slideIndex });
-      }
-      break;
-  }
+  scrollTo({ slideIndex });
 };
 </script>
 
 <template>
   <div class="gallery-wrapper">
-    <div
+    <button
+      v-if="!isFirstElement"
       class="gallery-nav gallery-nav--left"
-      @click="onArrowClick({ direction: 'left' })"
+      @click="onArrowClick(-1)"
     >
       <slot name="arrow-left"><i class="arrow arrow--left" /></slot>
-    </div>
+    </button>
 
-    <div
+    <button
+      v-if="!isLastElement"
       class="gallery-nav gallery-nav--right"
-      @click="onArrowClick({ direction: 'right' })"
+      @click="onArrowClick(1)"
     >
       <slot name="arrow-right"><i class="arrow arrow--right" /></slot>
-    </div>
+    </button>
 
-    <div class="gallery-container" ref="gallery-container" id="scroll-box">
-      <template v-for="(item, idx) in items" :key="item[keyName]">
-        <div class="gallery-item" :data-item="idx" :id="item[keyName]">
+    <div class="gallery-container"  ref="gallery-container" id="scroll-box">
+      <template
+        v-for="(item, idx) in calculatedItems"
+        :key="item[keyName] + idx"
+      >
+        <div class="gallery-item" :data-item="idx" :id="item[keyName]" draggable="true"> 
           <slot :item>
             <div class="gallery-item__image">
               <img :src="item.path" />
@@ -159,11 +168,21 @@ const onArrowClick = ({ direction }: ArrowClickOptions) => {
 
 <style>
 .gallery-wrapper {
+  box-sizing: border-box;
+
+  *,
+  *:before,
+  *:after {
+    box-sizing: inherit;
+  }
+
   position: relative;
   height: v-bind(height);
   width: v-bind(width);
 
   .gallery-nav {
+    all: unset;
+    outline: revert;
     display: none;
     position: absolute;
     top: 50%;
@@ -215,15 +234,17 @@ const onArrowClick = ({ direction }: ArrowClickOptions) => {
 
   .gallery-container {
     display: flex;
+    overflow-y: hidden;
     overflow-x: auto;
     scrollbar-width: none;
     scroll-snap-type: x mandatory;
     scroll-snap-stop: always;
     scroll-behavior: smooth;
-    gap: 0px;
+    align-items: center;
+    gap: v-bind(slidesGap);
     z-index: 1;
     height: v-bind(height);
-    width: v-bind(width);
+    width: 100%;
 
     .gallery-item {
       width: 100%;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Gallery from "@/components/Gallery.vue";
+import Gallery, { type GalleryOptions } from "@/components/Gallery.vue";
 
 type Slide = {
   id: number;
@@ -8,7 +8,7 @@ type Slide = {
 
 const items: Slide[] = [
   {
-    id: 1.2,
+    id: 1.1,
     path: "https://cdn.dummyjson.com/recipe-images/1.webp",
   },
   {
@@ -20,15 +20,15 @@ const items: Slide[] = [
     path: "https://cdn.dummyjson.com/recipe-images/3.webp",
   },
   {
-    id: 4.1,
+    id: 4.4,
     path: "https://cdn.dummyjson.com/recipe-images/4.webp",
   },
   {
-    id: 5.4,
+    id: 5.5,
     path: "https://cdn.dummyjson.com/recipe-images/5.webp",
   },
   {
-    id: 6.9,
+    id: 6.6,
     path: "https://cdn.dummyjson.com/recipe-images/6.webp",
   },
 ];
@@ -37,10 +37,12 @@ const onSlideChange = (slide: Slide) => {
   console.log(slide);
 };
 
-const options = {
+const options: GalleryOptions = {
   height: "400px",
   width: "",
+  slidesGap: '10px'
 };
+
 </script>
 
 <template>
@@ -49,13 +51,7 @@ const options = {
       <div class="page__left-sidebar"></div>
       <div class="page__main">
         <h1>Gallery page</h1>
-        <Gallery
-          class="gallery-1"
-          :items
-          :options
-          keyName="id"
-          @change="onSlideChange"
-        />
+        <Gallery :items :options keyName="id" @change="onSlideChange" />     
       </div>
     </div>
   </div>
@@ -70,18 +66,6 @@ const options = {
   @media only screen and (min-width: 480px) {
     display: grid;
     grid-template-columns: minmax(200px, 300px) 1fr;
-  }
-}
-
-.gallery-1 {
-}
-
-.image {
-  height: 100%;
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
   }
 }
 </style>
